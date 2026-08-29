@@ -50,7 +50,7 @@ static BOOL s7tv_chatTopBannerClassEnabled(NSString *className) {
     if ([className isEqualToString:@"Twitch.TopChatCalloutView"]) {
         return s7tv_hideChatTopCalloutEnabled();
     }
-    if ([className isEqualToString:@"Twitch.CreaterGoalsBannerView"]) {
+    if ([className isEqualToString:@"Twitch.CreatorGoalsBannerView"]) {
         return s7tv_hideCreatorGoalsBannerEnabled();
     }
     if ([className isEqualToString:@"Twitch.LeaderboardBannerView"]) {
@@ -62,7 +62,7 @@ static BOOL s7tv_chatTopBannerClassEnabled(NSString *className) {
 static BOOL s7tv_isChatTopBannerTargetClass(NSString *className) {
     return [className isEqualToString:@"Twitch.VerticalContentScrollView"] ||
            [className isEqualToString:@"Twitch.TopChatCalloutView"] ||
-           [className isEqualToString:@"Twitch.CreaterGoalsBannerView"] ||
+           [className isEqualToString:@"Twitch.CreatorGoalsBannerView"] ||
            [className isEqualToString:@"Twitch.LeaderboardBannerView"];
 }
 
