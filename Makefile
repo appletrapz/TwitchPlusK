@@ -34,6 +34,7 @@ TwitchPlusK_FILES = \
     Sources/Chat/7tv-chat-message.m \
     Sources/Chat/7tv-chat-reply-thread-panel.m \
     Sources/Chat/7tv-chat-tokenizer.m \
+    Sources/Chat/7tv-chat-top-banner.m \
     Sources/Emote/7tv-emote-animation-engine.m \
     Sources/Emote/7tv-emote-image-cache.m \
     Sources/Emote/7tv-emote-provider.m \
