@@ -55,7 +55,7 @@ BOOL S7TVAdblockIsAdHost(NSString *host) {
     static NSSet *exact;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        exact = [NSSet setWithObjects:@"edge.ads.twitch.tv", @"spade.twitch.tv",
+        exact = [NSSet setWithObjects:@"edge.ads.twitch.tv",
             @"secure-sts-prod.imrworldwide.com", nil];
     });
     if ([exact containsObject:host]) return YES;
