@@ -22,6 +22,7 @@
 #import "System/7tv-system-native-behavior-hooks.h"
 #import "System/7tv-system-autoclaim.h"
 #import "System/7tv-system-home-features.h"
+#import "Chat/7tv-chat-top-banner.h"
 #import "Adblock/7tv-adblock-settings.h"
 #import "Adblock/Proxy/7tv-adblock-proxy-status.h"
 #import "Diagnostics/7tv-hook-diagnostics.h"
@@ -1856,6 +1857,7 @@ typedef NS_ENUM(NSInteger, S7TVContentHomeRow) {
     S7TVContentHomeRowKeepLiveFeed   = 2,
     S7TVContentHomeRowAutoCollect    = 3,
     S7TVContentHomeRowLockButton     = 4,
+    S7TVContentHomeRowHideChatBanner = 5,
 };
 
 // Valeurs présentées dans une seule ligne de réglage. « Manuel » et les
@@ -1975,6 +1977,7 @@ static NSString *S7TVOrientationLockSettingTitle(S7TVOrientationLockSetting sett
         @(S7TVContentHomeRowKeepLiveFeed),
         @(S7TVContentHomeRowAutoCollect),
         @(S7TVContentHomeRowLockButton),
+        @(S7TVContentHomeRowHideChatBanner),
     ], @{});
 }
 
@@ -2066,6 +2069,10 @@ static NSString *S7TVOrientationLockSettingTitle(S7TVOrientationLockSetting sett
                         setting == S7TVOrientationLockSettingDisabled),
                     @"lock.rotation", S7TVAccent(), @"desc_orientation_lock_settings");
             }
+            case S7TVContentHomeRowHideChatBanner:
+                return S7TVSwitchCell(L(@"switch_hide_chat_top_banner"),
+                    @"rectangle.badge.xmark", [UIColor colorWithRed:0.95 green:0.35 blue:0.50 alpha:1.0],
+                    s7tv_hideChatTopBannerEnabled(), self, @selector(toggleHideChatTopBanner:), nil);
         }
         return [[UITableViewCell alloc] init];
     }
@@ -2172,6 +2179,9 @@ static NSString *S7TVOrientationLockSettingTitle(S7TVOrientationLockSetting sett
 }
 - (void)toggleHideTwitchStories:(UISwitch *)sw {
     s7tv_setHideTwitchStoriesEnabled(sw.isOn);
+}
+- (void)toggleHideChatTopBanner:(UISwitch *)sw {
+    s7tv_setHideChatTopBannerEnabled(sw.isOn);
 }
 - (void)toggleKeepLiveFeedPlaying:(UISwitch *)sw {
     s7tv_setKeepLiveFeedPlayingEnabled(sw.isOn);
