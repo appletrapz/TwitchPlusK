@@ -241,6 +241,16 @@ static NSString *const kS7TVLanguageDefaultsKey = @"s7tv_language";
             @"Higher resolutions look sharper, but use more storage and memory and may cause lag. Changing it clears the cache and applies without restarting."
         ],
         @"switch_floating_button":          @[@"Bouton flottant", @"Floating button"],
+        @"switch_flex_explorer":            @[@"Explorateur FLEX", @"FLEX Explorer"],
+        @"flex_explorer_info":              @[
+            @"Ouvre l'explorateur FLEX (outil de debug), si libFLEX.dylib est embarqué séparément dans l'IPA. N'a aucun effet sinon.",
+            @"Opens the FLEX explorer (debug tool), if libFLEX.dylib is embedded separately in the IPA. Has no effect otherwise."
+        ],
+        @"flex_explorer_unavailable_title": @[@"FLEX indisponible", @"FLEX unavailable"],
+        @"flex_explorer_unavailable_message": @[
+            @"libFLEX.dylib n'a pas été trouvé dans l'IPA. Embarquez-le dans Frameworks/ avant d'activer ce réglage.",
+            @"libFLEX.dylib wasn't found in the IPA. Embed it in Frameworks/ before enabling this setting."
+        ],
         @"switch_enable_logs":              @[@"Activer les logs", @"Enable logs"],
         @"switch_logs_console":             @[@"Logs console (Console.app)", @"Console logs (Console.app)"],
 
