@@ -19,6 +19,7 @@ TwitchPlusK_FILES = \
     Sources/Adblock/Proxy/7tv-adblock-resource-loader.m \
     Sources/Adblock/7tv-adblock-runtime.m \
     Sources/Diagnostics/7tv-hook-diagnostics.m \
+    Sources/Diagnostics/7tv-flex-explorer.m \
     Sources/Adblock/Proxy/Fishhook/fishhook.c \
     Sources/Adblock/Vaft/TwitchAdBlock.c \
     Sources/Adblock/Vaft/TASDiagnostics.c \
