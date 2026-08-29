@@ -1852,12 +1852,15 @@ typedef NS_ENUM(NSInteger, S7TVContentSection) {
 // Rows logiques de la section « Accueil et lecture » (rotation et récupération
 // auto des points y sont fusionnées).
 typedef NS_ENUM(NSInteger, S7TVContentHomeRow) {
-    S7TVContentHomeRowLaunchScreen   = 0,
-    S7TVContentHomeRowHideStories    = 1,
-    S7TVContentHomeRowKeepLiveFeed   = 2,
-    S7TVContentHomeRowAutoCollect    = 3,
-    S7TVContentHomeRowLockButton     = 4,
-    S7TVContentHomeRowHideChatBanner = 5,
+    S7TVContentHomeRowLaunchScreen         = 0,
+    S7TVContentHomeRowHideStories          = 1,
+    S7TVContentHomeRowKeepLiveFeed         = 2,
+    S7TVContentHomeRowAutoCollect          = 3,
+    S7TVContentHomeRowLockButton           = 4,
+    S7TVContentHomeRowHideChatVertical     = 5,
+    S7TVContentHomeRowHideChatTopCallout   = 6,
+    S7TVContentHomeRowHideCreatorGoals     = 7,
+    S7TVContentHomeRowHideLeaderboard      = 8,
 };
 
 // Valeurs présentées dans une seule ligne de réglage. « Manuel » et les
@@ -1977,7 +1980,10 @@ static NSString *S7TVOrientationLockSettingTitle(S7TVOrientationLockSetting sett
         @(S7TVContentHomeRowKeepLiveFeed),
         @(S7TVContentHomeRowAutoCollect),
         @(S7TVContentHomeRowLockButton),
-        @(S7TVContentHomeRowHideChatBanner),
+        @(S7TVContentHomeRowHideChatVertical),
+        @(S7TVContentHomeRowHideChatTopCallout),
+        @(S7TVContentHomeRowHideCreatorGoals),
+        @(S7TVContentHomeRowHideLeaderboard),
     ], @{});
 }
 
@@ -2069,10 +2075,28 @@ static NSString *S7TVOrientationLockSettingTitle(S7TVOrientationLockSetting sett
                         setting == S7TVOrientationLockSettingDisabled),
                     @"lock.rotation", S7TVAccent(), @"desc_orientation_lock_settings");
             }
-            case S7TVContentHomeRowHideChatBanner:
-                return S7TVSwitchCell(L(@"switch_hide_chat_top_banner"),
+            case S7TVContentHomeRowHideChatVertical:
+                return S7TVSwitchCell(L(@"switch_hide_chat_vertical_content"),
                     @"rectangle.badge.xmark", [UIColor colorWithRed:0.95 green:0.35 blue:0.50 alpha:1.0],
-                    s7tv_hideChatTopBannerEnabled(), self, @selector(toggleHideChatTopBanner:), nil);
+                    s7tv_hideChatVerticalContentEnabled(), self, @selector(toggleHideChatVerticalContent:), nil);
+            case S7TVContentHomeRowHideChatTopCallout:
+                return S7TVSwitchCellWithEnabledState(L(@"switch_hide_chat_top_callout"),
+                    @"gift.fill", [UIColor colorWithRed:0.60 green:0.35 blue:0.95 alpha:1.0],
+                    s7tv_hideChatTopCalloutEnabled(), !s7tv_hideChatVerticalContentEnabled(),
+                    self, @selector(toggleHideChatTopCallout:),
+                    s7tv_hideChatVerticalContentEnabled() ? @"chat_subtoggle_superseded" : nil);
+            case S7TVContentHomeRowHideCreatorGoals:
+                return S7TVSwitchCellWithEnabledState(L(@"switch_hide_creator_goals_banner"),
+                    @"target", [UIColor colorWithRed:0.20 green:0.70 blue:0.55 alpha:1.0],
+                    s7tv_hideCreatorGoalsBannerEnabled(), !s7tv_hideChatVerticalContentEnabled(),
+                    self, @selector(toggleHideCreatorGoalsBanner:),
+                    s7tv_hideChatVerticalContentEnabled() ? @"chat_subtoggle_superseded" : nil);
+            case S7TVContentHomeRowHideLeaderboard:
+                return S7TVSwitchCellWithEnabledState(L(@"switch_hide_leaderboard_banner"),
+                    @"list.number", [UIColor colorWithRed:0.95 green:0.65 blue:0.20 alpha:1.0],
+                    s7tv_hideLeaderboardBannerEnabled(), !s7tv_hideChatVerticalContentEnabled(),
+                    self, @selector(toggleHideLeaderboardBanner:),
+                    s7tv_hideChatVerticalContentEnabled() ? @"chat_subtoggle_superseded" : nil);
         }
         return [[UITableViewCell alloc] init];
     }
@@ -2180,8 +2204,21 @@ static NSString *S7TVOrientationLockSettingTitle(S7TVOrientationLockSetting sett
 - (void)toggleHideTwitchStories:(UISwitch *)sw {
     s7tv_setHideTwitchStoriesEnabled(sw.isOn);
 }
-- (void)toggleHideChatTopBanner:(UISwitch *)sw {
-    s7tv_setHideChatTopBannerEnabled(sw.isOn);
+- (void)toggleHideChatVerticalContent:(UISwitch *)sw {
+    s7tv_setHideChatVerticalContentEnabled(sw.isOn);
+    // Les 3 sous-réglages passent grisés (+ tooltip) quand celui-ci est actif,
+    // puisqu'il les couvre déjà — il faut donc rafraîchir la section.
+    [S7TVInfoTooltip dismiss];
+    [self.tableView reloadData];
+}
+- (void)toggleHideChatTopCallout:(UISwitch *)sw {
+    s7tv_setHideChatTopCalloutEnabled(sw.isOn);
+}
+- (void)toggleHideCreatorGoalsBanner:(UISwitch *)sw {
+    s7tv_setHideCreatorGoalsBannerEnabled(sw.isOn);
+}
+- (void)toggleHideLeaderboardBanner:(UISwitch *)sw {
+    s7tv_setHideLeaderboardBannerEnabled(sw.isOn);
 }
 - (void)toggleKeepLiveFeedPlaying:(UISwitch *)sw {
     s7tv_setKeepLiveFeedPlayingEnabled(sw.isOn);
