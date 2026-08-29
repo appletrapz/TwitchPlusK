@@ -118,6 +118,7 @@ static NSString *const kS7TVLanguageDefaultsKey = @"s7tv_language";
         @"launch_activity":                 @[@"Activité", @"Activity"],
         @"launch_profile":                  @[@"Profil", @"Profile"],
         @"switch_hide_twitch_stories":      @[@"Masquer les stories Twitch", @"Hide Twitch Stories"],
+        @"switch_hide_chat_top_banner":     @[@"Masquer le bandeau du chat", @"Hide chat top banner"],
         @"switch_keep_live_feed_playing":   @[@"Continuer la lecture du fil Live", @"Keep Live Feed Playing"],
         @"desc_home_playback_settings":     @[@"Le fil Live ne sera plus interrompu par l’écran Regarder/Suivre. Les changements de l’écran de lancement et des stories s’appliquent au prochain démarrage.",
                                                @"The Live feed will no longer be interrupted by the Watch/Follow screen. Launch Screen and Stories changes apply after restarting."],
