@@ -25,6 +25,7 @@
 #import "Adblock/7tv-adblock-settings.h"
 #import "Adblock/Proxy/7tv-adblock-proxy-status.h"
 #import "Diagnostics/7tv-hook-diagnostics.h"
+#import "Diagnostics/7tv-flex-explorer.h"
 #import "Settings/7tv-settings-transfer.h"
 #import "UI/7tv-info-tooltip.h"
 #import "UI/7tv-oled-mode.h"
@@ -3048,7 +3049,7 @@ typedef NS_ENUM(NSInteger, S7TVLogsRow) {
     switch (s) {
         case S7TV_SECTION_TOOLS:    return 2;
         case S7TV_SECTION_TRANSFER: return 2;
-        case S7TV_SECTION_OPTIONS:  return 2;
+        case S7TV_SECTION_OPTIONS:  return 3;
         case S7TV_SECTION_LOGS:     return [self s7tv_visibleLogsRows].count + 4; /* + bloc Diagnostics VAFT */
         default: return 0;
     }
@@ -3136,11 +3137,20 @@ typedef NS_ENUM(NSInteger, S7TVLogsRow) {
                     mgr.chatCustomTestEnabled,
                     self, @selector(toggleChatCustom:), @"chat_custom_info");
         }
+        if (ip.row == 1) {
         return S7TVSwitchCell(L(@"switch_floating_button"),
                     @"circle.grid.2x1.fill",
                     UIColor.systemOrangeColor,
                     mgr.showFloatingButton,
                     self, @selector(toggleFloatingButton:), nil);
+        }
+        // Nécessite libFLEX.dylib embarqué séparément dans l'IPA — no-op
+        // silencieux si absent (voir 7tv-flex-explorer.m).
+        return S7TVSwitchCell(L(@"switch_flex_explorer"),
+                    @"wrench.and.screwdriver.fill",
+                    UIColor.systemPurpleColor,
+                    mgr.flexExplorerEnabled,
+                    self, @selector(toggleFlexExplorer:), @"flex_explorer_info");
     }
 
     if (ip.section == S7TV_SECTION_TRANSFER) {
@@ -3585,6 +3595,17 @@ didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
 - (void)toggleDebug:(UISwitch *)sw                  { [SevenTVManager sharedManager].debugLogging        = sw.isOn; }
 - (void)toggleChatCustom:(UISwitch *)sw             { [SevenTVManager sharedManager].chatCustomTestEnabled = sw.isOn; }
 - (void)toggleFloatingButton:(UISwitch *)sw         { [SevenTVManager sharedManager].showFloatingButton  = sw.isOn; }
+- (void)toggleFlexExplorer:(UISwitch *)sw {
+    if (sw.isOn && !S7TVFlexExplorerAvailable()) {
+        // Remet le switch à OFF et prévient l'utilisateur plutôt que de
+        // laisser un réglage "activé" qui ne fait visuellement rien.
+        sw.on = NO;
+        [self s7tv_showSettingsTransferAlertWithTitle:L(@"flex_explorer_unavailable_title")
+                                               message:L(@"flex_explorer_unavailable_message")];
+        return;
+    }
+    [SevenTVManager sharedManager].flexExplorerEnabled = sw.isOn;
+}
 
 - (void)toggleLogErrors:(UISwitch *)sw           { [SevenTVManager sharedManager].logErrors           = sw.isOn; }
 - (void)toggleLogSwizzle:(UISwitch *)sw          { [SevenTVManager sharedManager].logSwizzle          = sw.isOn; }
