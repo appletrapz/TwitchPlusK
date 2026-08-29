@@ -45,6 +45,7 @@
 #import "Adblock/7tv-adblock-settings.h"
 #import "Diagnostics/7tv-hook-diagnostics.h"
 #import "UI/7tv-oled-mode.h"
+#import "Chat/7tv-chat-top-banner.h"
 
 
 // ────────────────────────────────────────────────────────────
@@ -186,6 +187,7 @@ static void s7tv_ingestChannelPointMetadata(NSData *data,
 
     s7tv_handleTheaterControlsViewLifecycle(self);
     s7tv_handleNativeChatViewLifecycle(self);
+    s7tv_handleChatTopBannerCarouselViewLifecycle(self);
 
     s7tv_handleChatInputViewLifecycle(self);
 }
