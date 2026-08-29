@@ -45,6 +45,7 @@
 #import "Emote/7tv-emote-provider.h"
 #import "Chat/7tv-chat-custom-view.h"
 #import "Chat/7tv-chat-reply-thread-panel.h"
+#import "Diagnostics/7tv-flex-explorer.h"
 #import <objc/runtime.h>
 
 // ============================================================
@@ -572,6 +573,8 @@ static const CGFloat kS7TVMenuHeight = 520.0;
     if ([prefs objectForKey:@"s7tv_debug"]             != nil) _debugLogging          = [prefs boolForKey:@"s7tv_debug"];
     if ([prefs objectForKey:@"s7tv_floating_btn"]      != nil) _showFloatingButton     = [prefs boolForKey:@"s7tv_floating_btn"];
     else _showFloatingButton = NO; // désactivé par défaut
+    if ([prefs objectForKey:@"s7tv_flex_explorer"]     != nil) _flexExplorerEnabled    = [prefs boolForKey:@"s7tv_flex_explorer"];
+    else _flexExplorerEnabled = NO; // désactivé par défaut
     if ([prefs objectForKey:@"s7tv_chat_custom_test"]  != nil) _chatCustomTestEnabled  = [prefs boolForKey:@"s7tv_chat_custom_test"];
 
     // --- Logs : interrupteur global + catégories ---
@@ -606,6 +609,7 @@ static const CGFloat kS7TVMenuHeight = 520.0;
         // Ces deux réglages ont aussi un effet visuel immédiat dans une
         // session Twitch déjà ouverte.
         self.floatingWindow.hidden = !self.showFloatingButton;
+        S7TVSetFlexExplorerVisible(self.flexExplorerEnabled);
         [[NSNotificationCenter defaultCenter]
             postNotificationName:S7TVChatCustomToggleDidChangeNotification object:self];
     });
@@ -620,6 +624,7 @@ static const CGFloat kS7TVMenuHeight = 520.0;
     [prefs setBool:self.showPickerAnimationsFavoritesOnly forKey:@"s7tv_picker_anim_favs"];
     [prefs setBool:self.debugLogging         forKey:@"s7tv_debug"];
     [prefs setBool:self.showFloatingButton   forKey:@"s7tv_floating_btn"];
+    [prefs setBool:self.flexExplorerEnabled  forKey:@"s7tv_flex_explorer"];
     [prefs setBool:self.chatCustomTestEnabled forKey:@"s7tv_chat_custom_test"];
 
     [prefs setBool:self.logsEnabled          forKey:@"s7tv_logs_enabled"];
@@ -723,6 +728,13 @@ static const CGFloat kS7TVMenuHeight = 520.0;
     dispatch_async(dispatch_get_main_queue(), ^{
         self.floatingWindow.hidden = !v;
     });
+}
+- (void)setFlexExplorerEnabled:(BOOL)v {
+    _flexExplorerEnabled = v;
+    [self savePreferences];
+    // Ouvre/ferme l'explorateur FLEX en temps réel si libFLEX.dylib est
+    // embarqué dans l'IPA — no-op silencieux sinon (voir 7tv-flex-explorer.m).
+    S7TVSetFlexExplorerVisible(v);
 }
 - (void)setChatCustomTestEnabled:(BOOL)v {
     _chatCustomTestEnabled = v;

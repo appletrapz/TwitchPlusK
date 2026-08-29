@@ -107,6 +107,7 @@ typedef NS_ENUM(NSInteger, S7TVLogCategory) {
 // l'autre — voir SevenTVSettingsController pour le grisage correspondant).
 @property (nonatomic, assign) BOOL showPickerAnimationsFavoritesOnly;
 @property (nonatomic, assign) BOOL showFloatingButton;    // Afficher/masquer le bouton flottant 7TV
+@property (nonatomic, assign) BOOL flexExplorerEnabled;   // Afficher/masquer l'explorateur FLEX (debug, optionnel)
 // Kill switch Phase 0 (plan chat custom) : quand ON, cache la vraie
 // ChatTranscriptView et pose une vue flashy à sa place dans son UIStackView
 // parent — test de validation du point d'insertion. OFF par défaut.
