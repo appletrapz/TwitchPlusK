@@ -7,7 +7,7 @@
  *                                         carousel — hiding it hides all
  *                                         of the below at once)
  *   - Twitch.TopChatCalloutView         (Drops / Hype Train / Prediction / Polls)
- *   - Twitch.CreaterGoalsBannerView     (Sub/Follower goals banner)
+ *   - Twitch.CreatorGoalsBannerView     (Sub/Follower goals banner)
  *   - Twitch.LeaderboardBannerView      (Leaderboard banner)
  * Same "hide native UI element" pattern as s7tv_hideTwitchStoriesEnabled in
  * 7tv-system-home-features, just scoped to a UIView.didMoveToWindow hook
