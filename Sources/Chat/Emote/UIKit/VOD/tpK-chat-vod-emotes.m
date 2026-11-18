@@ -128,7 +128,7 @@ static NSData *VODTransform(NSData *data, NSURLRequest *request, TPKChannelConte
         TPKEmoteDescriptor *emote = [catalog resolveEmoteNamed:word];
         if (emote.sectionKind != TPKEmoteSectionKindGlobal && ![channels containsObject:@(emote.provider)]) emote = nil;
         NSURL *url = [emote imageURLForResolution:resolution];
-        NSString *identifier = url && url.absoluteString.length <= 1024 ? TPKChatEmoteIdentifier(url, emote.nativeSize) : nil;
+        NSString *identifier = url && url.absoluteString.length <= 1024 ? TPKChatEmoteIdentifierNamed(url, emote.nativeSize, word) : nil;
         if (resolved.count < 4096) resolved[word] = identifier ?: (id)NSNull.null;
         return identifier;
     };
