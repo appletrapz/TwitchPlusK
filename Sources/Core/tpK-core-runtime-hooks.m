@@ -203,6 +203,9 @@ static void tpk_captureTwitchCredentialsFromGQLRequest(NSURLRequest *request) {
         return [self tpk_dataTaskWithRequest:request];
     }
     tpk_captureTwitchCredentialsFromGQLRequest(request);
+    // React Native's fetch (chat emote card) uses this delegate variant.
+    NSURLRequest *emoteCard = TPKChatEmoteCardRequest(request);
+    if (emoteCard) return [self tpk_dataTaskWithRequest:emoteCard];
     request = TPKChatEmotesImageRequest(request);
     BOOL blocked = NO;
     request = TPKAdblockPrepareRequest(request, &blocked);
@@ -223,6 +226,18 @@ static void tpk_captureTwitchCredentialsFromGQLRequest(NSURLRequest *request) {
         return [self tpk_dataTaskWithRequest:request completionHandler:completionHandler];
     }
     tpk_captureTwitchCredentialsFromGQLRequest(request);
+    NSURLRequest *emoteCard = TPKChatEmoteCardRequest(request);
+    if (emoteCard) {
+        // Present the local answer as the HTTP 200 the caller asked gql for.
+        NSURL *originalURL = request.URL;
+        return [self tpk_dataTaskWithRequest:emoteCard completionHandler:completionHandler ?
+            ^(NSData *data, NSURLResponse *response, NSError *error) {
+                NSHTTPURLResponse *http = error ? nil : [[NSHTTPURLResponse alloc]
+                    initWithURL:originalURL statusCode:200 HTTPVersion:@"HTTP/1.1"
+                   headerFields:@{@"Content-Type": @"application/json"}];
+                completionHandler(data, http ?: response, error);
+            } : nil];
+    }
     request = TPKChatEmotesImageRequest(request);
     BOOL blocked = NO;
     request = TPKAdblockPrepareRequest(request, &blocked);
