@@ -38,6 +38,8 @@ extern id objc_retain(id object);
 extern void objc_release(id object);
 extern void objc_setAssociatedObject(id object, const void *key, id value, uintptr_t policy);
 extern uint32_t arc4random_uniform(uint32_t upper_bound);
+extern void *objc_autoreleasePoolPush(void);
+extern void objc_autoreleasePoolPop(void *pool);
 
 static id msg0(id object, const char *selector) {
     return ((id (*)(id, SEL))objc_msgSend)(object, sel_registerName(selector));
@@ -295,6 +297,8 @@ static bool is_twitch_hls_url(const char *url) {
 }
 
 static bool is_cached_ad_segment(const char *url) {
+    /* canInitWithRequest: passes NULL for requests without a URL. */
+    if (!url) return false;
     bool found = false;
     time_t now = time(NULL);
     pthread_mutex_lock(&g_lock);
@@ -383,7 +387,9 @@ static char *replace_json_string(char *source, const char *key, const char *repl
             size_t chunk = (size_t)(colon - cursor);
             if (length + chunk + 1 > capacity) {
                 capacity = (length + chunk + 1) * 2;
-                result = realloc(result, capacity);
+                char *grown = realloc(result, capacity);
+                if (!grown) { free(result); return source; }
+                result = grown;
             }
             memcpy(result + length, cursor, chunk);
             length += chunk;
@@ -396,7 +402,9 @@ static char *replace_json_string(char *source, const char *key, const char *repl
             size_t chunk = (size_t)(quote - cursor);
             if (length + chunk + 1 > capacity) {
                 capacity = (length + chunk + 1) * 2;
-                result = realloc(result, capacity);
+                char *grown = realloc(result, capacity);
+                if (!grown) { free(result); return source; }
+                result = grown;
             }
             memcpy(result + length, cursor, chunk);
             length += chunk;
@@ -411,7 +419,9 @@ static char *replace_json_string(char *source, const char *key, const char *repl
         size_t needed = length + prefix + replacement_length + 1;
         if (needed > capacity) {
             capacity = needed * 2;
-            result = realloc(result, capacity);
+            char *grown = realloc(result, capacity);
+            if (!grown) { free(result); return source; }
+            result = grown;
         }
         memcpy(result + length, cursor, prefix);
         length += prefix;
@@ -423,7 +433,9 @@ static char *replace_json_string(char *source, const char *key, const char *repl
     size_t tail = strlen(cursor);
     if (length + tail + 1 > capacity) {
         capacity = length + tail + 1;
-        result = realloc(result, capacity);
+        char *grown = realloc(result, capacity);
+        if (!grown) { free(result); return source; }
+        result = grown;
     }
     memcpy(result + length, cursor, tail + 1);
     if (!changed) {
@@ -509,10 +521,18 @@ static id synchronous_request(id request, id *response, id *error) {
 static id blank_video_data(void) {
     static const char encoded[] =
         "AAAAKGZ0eXBtcDQyAAAAAWlzb21tcDQyZGFzaGF2YzFpc282aGxzZgAABEltb292AAAAbG12aGQAAAAAAAAAAAAAAAAAAYagAAAAAAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAABqHRyYWsAAABcdGtoZAAAAAMAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAURtZGlhAAAAIG1kaGQAAAAAAAAAAAAAAAAAALuAAAAAAFXEAAAAAAAtaGRscgAAAAAAAAAAc291bgAAAAAAAAAAAAAAAFNvdW5kSGFuZGxlcgAAAADvbWluZgAAABBzbWhkAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAACzc3RibAAAAGdzdHNkAAAAAAAAAAEAAABXbXA0YQAAAAAAAAABAAAAAAAAAAAAAgAQAAAAALuAAAAAAAAzZXNkcwAAAAADgICAIgABAASAgIAUQBUAAAAAAAAAAAAAAAWAgIACEZAGgICAAQIAAAAQc3R0cwAAAAAAAAAAAAAAEHN0c2MAAAAAAAAAAAAAABRzdHN6AAAAAAAAAAAAAAAAAAAAEHN0Y28AAAAAAAAAAAAAAeV0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAoAAAAFoAAAAAAGBbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAA9CQAAAAABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABLG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAOxzdGJsAAAAoHN0c2QAAAAAAAAAAQAAAJBhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAoABaABIAAAASAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGP//AAAAOmF2Y0MBTUAe/+EAI2dNQB6WUoFAX/LgLUBAQFAAAD6AAA6mDgAAHoQAA9CW7y4KAQAEaOuPIAAAABBzdHRzAAAAAAAAAAAAAAAQc3RzYwAAAAAAAAAAAAAAFHN0c3oAAAAAAAAAAAAAAAAAAAAQc3RjbwAAAAAAAAAAAAAASG12ZXgAAAAgdHJleAAAAAAAAAABAAAAAQAAAC4AAAAAAoAAAAAAACB0cmV4AAAAAAAAAAIAAAABAACCNQAAAAACQAAA";
-    return ((id (*)(id, SEL, id, NSUInteger))objc_msgSend)(
-        msg0((id)objc_getClass("NSData"), "alloc"),
-        sel_registerName("initWithBase64EncodedString:options:"),
-        nsstr(encoded), 0);
+    /* Decoded once and kept for the whole process: callers must not release
+     * it. The previous alloc/init returned a +1 object on every ad segment
+     * and nobody released it (this file is not ARC). */
+    static id cached;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        cached = ((id (*)(id, SEL, id, NSUInteger))objc_msgSend)(
+            msg0((id)objc_getClass("NSData"), "alloc"),
+            sel_registerName("initWithBase64EncodedString:options:"),
+            nsstr(encoded), 0);
+    });
+    return cached;
 }
 
 static id http_response(const char *url, NSInteger status, const char *mime, size_t length, id original) {
@@ -648,8 +668,23 @@ static void protocol_start_loading(id self, SEL command) {
         id task = ((id (*)(id, SEL, id, id))objc_msgSend)(session,
             sel_registerName("dataTaskWithRequest:completionHandler:"), request,
             (id)^(id data, id response, id error) {
-                protocol_complete(held, data, response, error);
-                objc_release(held);
+                /* process_manifest() can make several synchronous token and
+                 * playlist fetches. Running it here would block the session's
+                 * serial delegate queue, and with it every other HLS load.
+                 * This is a C file, so the block does not retain these
+                 * objects itself: retain them across the hop. */
+                id kept_data = objc_retain(data);
+                id kept_response = objc_retain(response);
+                id kept_error = objc_retain(error);
+                dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+                    void *pool = objc_autoreleasePoolPush();
+                    protocol_complete(held, kept_data, kept_response, kept_error);
+                    objc_autoreleasePoolPop(pool);
+                    objc_release(kept_data);
+                    objc_release(kept_response);
+                    objc_release(kept_error);
+                    objc_release(held);
+                });
             });
         if (task) {
             objc_setAssociatedObject(self, &g_protocol_task_key, task, 1);
@@ -1050,6 +1085,17 @@ static bool fetch_bytes(const char *url, id *data, id *response) {
 static bool request_access_token(const char *channel, const char *player_type,
                                  char *signature, size_t signature_capacity,
                                  char *token, size_t token_capacity) {
+    /* The login is copied into JSON unescaped, so only accept the characters
+     * Twitch allows in logins (it comes from the playlist URL path). */
+    size_t channel_length = channel ? strlen(channel) : 0;
+    if (!channel_length || channel_length > 64) return false;
+    for (const char *c = channel; *c; c++) {
+        if (!((*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') ||
+              (*c >= '0' && *c <= '9') || *c == '_')) {
+            tas_diag_log("TOKEN_FAILURE", "reason=invalid_channel_login");
+            return false;
+        }
+    }
     const char *platform = strcmp(player_type, "autoplay") == 0 ? "android" : "web";
     char json[8192];
     snprintf(json, sizeof(json),
@@ -1915,6 +1961,10 @@ static BOOL loader_handle(id self, SEL command, id loading_request) {
     id network_request = msg0(request, "mutableCopy");
     vmsg1(network_request, "setURL:", nsurl(url));
     vmsg2(network_request, "setValue:forHTTPHeaderField:", nsstr("1"), nsstr(TAS_INTERNAL_HEADER));
+    /* Always fetch the whole resource: respond_with_requested_range() cuts
+     * the slice from the full body. A forwarded Range header would get a 206
+     * partial body back and the offset would then be applied twice. */
+    vmsg2(network_request, "setValue:forHTTPHeaderField:", nil, nsstr("Range"));
 
     id response = nil;
     id error = nil;
@@ -2008,6 +2058,8 @@ static id asset_init(id self, SEL command, id url, id options) {
     dispatch_queue_t queue = dispatch_queue_create("dev.tas.hls-loader", DISPATCH_QUEUE_SERIAL);
     ((void (*)(id, SEL, id, dispatch_queue_t))objc_msgSend)(
         loader, sel_registerName("setDelegate:queue:"), delegate, queue);
+    /* The resource loader keeps its own reference to the queue. */
+    dispatch_release(queue);
     objc_setAssociatedObject(asset, &g_association_key, delegate, 1);
     objc_release(delegate);
     return asset;
