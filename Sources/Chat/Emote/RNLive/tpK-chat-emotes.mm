@@ -178,7 +178,7 @@ id TPKChatEmotesReceive(id socket, id message) {
             }
             NSURL *image = [emote imageURLForResolution:resolution];
             if (!ProviderURL(image) || image.absoluteString.length > 1024) return std::string();
-            NSString *identifier = TPKChatEmoteIdentifier(image, emote.nativeSize);
+            NSString *identifier = TPKChatEmoteIdentifierNamed(image, emote.nativeSize, name);
             resolved[name] = identifier;
             return std::string(identifier.UTF8String);
         });
