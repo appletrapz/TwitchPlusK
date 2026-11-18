@@ -61,6 +61,7 @@ TwitchPlusK_FILES = \
     Sources/System/tpK-system-tab-visibility.m \
     Sources/System/tpK-system-autoclaim.m \
     Sources/System/tpK-system-update-checker.m \
+    Sources/System/tpK-system-tablet-ultralight.m \
     Sources/UI/tpK-info-tooltip.m \
     Sources/UI/tpK-oled-mode.m
 
