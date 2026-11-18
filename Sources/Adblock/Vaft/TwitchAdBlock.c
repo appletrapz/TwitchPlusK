@@ -1454,8 +1454,18 @@ static char *strip_ad_segments(const char *playlist, const char *base_url) {
     return result ?: strdup("#EXTM3U\n");
 }
 
+/* Only playlists and segments already marked as ads go through the
+ * resource loader. Real media segments stay on https so AVPlayer streams
+ * them with its own network stack instead of a synchronous in-process
+ * download of every segment (high CPU, radio and memory use). Must be
+ * called without g_lock held: is_cached_ad_segment() takes it. */
+static bool needs_custom_scheme(const char *absolute) {
+    return absolute && (contains(absolute, ".m3u8") || is_cached_ad_segment(absolute));
+}
+
 static char *playback_url(const char *absolute, bool custom_scheme) {
-    return custom_scheme ? custom_scheme_url(absolute) : strdup(absolute);
+    return custom_scheme && needs_custom_scheme(absolute)
+        ? custom_scheme_url(absolute) : strdup(absolute);
 }
 
 static char *rewrite_manifest_urls(const char *playlist, const char *base_url, bool custom_scheme) {
@@ -1868,6 +1878,28 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
     return rewritten;
 }
 
+/* Answer only the bytes AVPlayer asked for. Sending the whole body to a
+ * range request (e.g. the 2-byte probe) makes AVPlayer fetch it again. */
+static void respond_with_requested_range(id data_request, id data) {
+    size_t total = data_length(data);
+    long long offset = ((long long (*)(id, SEL))objc_msgSend)(
+        data_request, sel_registerName("requestedOffset"));
+    NSInteger requested = ((NSInteger (*)(id, SEL))objc_msgSend)(
+        data_request, sel_registerName("requestedLength"));
+    BOOL to_end = ((BOOL (*)(id, SEL))objc_msgSend)(
+        data_request, sel_registerName("requestsAllDataToEndOfResource"));
+    if (offset < 0) offset = 0;
+    if ((unsigned long long)offset >= total) return;
+    size_t available = total - (size_t)offset;
+    size_t length = (to_end || requested <= 0 || (size_t)requested > available)
+        ? available : (size_t)requested;
+    if (offset == 0 && length == total) {
+        vmsg1(data_request, "respondWithData:", data);
+        return;
+    }
+    vmsg1(data_request, "respondWithData:", data_from_bytes(data_bytes(data) + offset, length));
+}
+
 static BOOL loader_handle(id self, SEL command, id loading_request) {
     (void)self;
     (void)command;
@@ -1931,16 +1963,20 @@ static BOOL loader_handle(id self, SEL command, id loading_request) {
         free(text);
     }
 
+    bool is_playlist = contains(url, ".m3u8") || (mime && contains(mime, "mpegurl"));
     id content = msg0(loading_request, "contentInformationRequest");
     if (content) {
-        const char *type = contains(url, ".m3u8") ? "public.m3u-playlist" :
+        const char *type = is_playlist ? "public.m3u-playlist" :
                            (contains(url, ".ts") ? "public.mpeg-2-transport-stream" : "public.mpeg-4");
         vmsg1(content, "setContentType:", nsstr(type));
         ((void (*)(id, SEL, long long))objc_msgSend)(content, sel_registerName("setContentLength:"), (long long)data_length(output_data));
-        ((void (*)(id, SEL, BOOL))objc_msgSend)(content, sel_registerName("setByteRangeAccessSupported:"), YES);
+        /* A rewritten playlist changes length on every refresh, so ranges
+         * across requests can't line up: make AVPlayer take it whole. */
+        ((void (*)(id, SEL, BOOL))objc_msgSend)(content, sel_registerName("setByteRangeAccessSupported:"),
+                                                is_playlist ? NO : YES);
     }
     id data_request = msg0(loading_request, "dataRequest");
-    if (data_request) vmsg1(data_request, "respondWithData:", output_data);
+    if (data_request) respond_with_requested_range(data_request, output_data);
     msg0(loading_request, "finishLoading");
     if (is_synthetic) objc_release(response);
     objc_release(network_request);
