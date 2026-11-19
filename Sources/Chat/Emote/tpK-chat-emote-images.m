@@ -51,12 +51,20 @@ NSString *TPKChatEmoteIdentifierNamed(NSURL *url, CGSize size, NSString *name) {
     return identifier;
 }
 
-static NSString *TPKChatEmoteFallbackName(NSURL *image) {
+static NSString *TPKChatEmoteProviderLabel(NSURL *image) {
     NSString *host = image.host.lowercaseString ?: @"";
-    if ([host containsString:@"7tv"]) return @"7TV emote";
-    if ([host containsString:@"betterttv"]) return @"BTTV emote";
-    if ([host containsString:@"frankerfacez"]) return @"FFZ emote";
-    return @"Emote";
+    if ([host containsString:@"7tv"]) return @"7TV";
+    if ([host containsString:@"betterttv"]) return @"BTTV";
+    if ([host containsString:@"frankerfacez"]) return @"FFZ";
+    return nil;
+}
+
+// Card title: "catJAM · 7TV". The card's own text can only say "Twitch
+// Global Emote", so the provider is shown in the name instead.
+static NSString *TPKChatEmoteCardName(NSString *name, NSURL *image) {
+    NSString *provider = TPKChatEmoteProviderLabel(image);
+    if (!name.length) return provider ? [provider stringByAppendingString:@" emote"] : @"Emote";
+    return provider ? [NSString stringWithFormat:@"%@ · %@", name, provider] : name;
 }
 
 // One complete EmoteCard result. Apollo's cache drops results that miss any
@@ -66,7 +74,7 @@ static NSString *TPKChatEmoteFallbackName(NSURL *image) {
 static NSDictionary *TPKChatEmoteCardResult(NSString *identifier) {
     NSURL *image = TPKChatEmoteImageURL(identifier);
     if (!image) return nil;
-    NSString *name = [TPKChatEmoteNames() objectForKey:identifier] ?: TPKChatEmoteFallbackName(image);
+    NSString *name = TPKChatEmoteCardName([TPKChatEmoteNames() objectForKey:identifier], image);
     return @{@"data": @{@"emote": @{
         @"__typename": @"Emote",
         @"id": identifier,
